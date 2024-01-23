@@ -21,41 +21,48 @@ import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { getWeekDays } from "../../../utils/get-week-days";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { convertTimeStringToMinutes } from "../../../utils/cover-time-string-to-minutes";
+import { api } from "../../../lib/axios";
 
 const timeIntervalsFormSchema = z.object({
-  intervals: z.array(z.object({
-    weekDay: z.number().min(0).max(6),
-    enabled: z.boolean(),
-    startTime: z.string(),
-    endTime: z.string()
-  }))
-  .length(7)
-  .transform((intervals) => intervals.filter((interval) => interval.enabled))
-  .refine((intervals) => intervals.length > 0, {
-    message: 'Você precisa selecionar pelo menos um dia da semana'
-  })
-  .transform((interval) => {
-    return interval.map((interval) => {
-      return{
-        weekDay: interval.weekDay,
-        startTimeInMinutes: convertTimeStringToMinutes(interval.startTime),
-        endTimeInMinutes: convertTimeStringToMinutes(interval.endTime),
-      }
+  intervals: z
+    .array(
+      z.object({
+        weekDay: z.number().min(0).max(6),
+        enabled: z.boolean(),
+        startTime: z.string(),
+        endTime: z.string(),
+      })
+    )
+    .length(7)
+    .transform((intervals) => intervals.filter((interval) => interval.enabled))
+    .refine((intervals) => intervals.length > 0, {
+      message: "Você precisa selecionar pelo menos um dia da semana",
     })
-  })
-  .refine(
-    (intervals) => {
-      return intervals.every(
-        interval => interval.endTimeInMinutes - 60 >= interval.startTimeInMinutes
-      )
-    }, {
-      message: 'O horário de termino deve ser pelo menos 1h distante do inicio.'
-    }
-  )
+    .transform((interval) => {
+      return interval.map((interval) => {
+        return {
+          weekDay: interval.weekDay,
+          startTimeInMinutes: convertTimeStringToMinutes(interval.startTime),
+          endTimeInMinutes: convertTimeStringToMinutes(interval.endTime),
+        };
+      });
+    })
+    .refine(
+      (intervals) => {
+        return intervals.every(
+          (interval) =>
+            interval.endTimeInMinutes - 60 >= interval.startTimeInMinutes
+        );
+      },
+      {
+        message:
+          "O horário de termino deve ser pelo menos 1h distante do inicio.",
+      }
+    ),
 });
 
-type TimeIntervalsFormInput = z.input<typeof timeIntervalsFormSchema>
-type TimeIntervalsFormOutput = z.output<typeof timeIntervalsFormSchema>
+type TimeIntervalsFormInput = z.input<typeof timeIntervalsFormSchema>;
+type TimeIntervalsFormOutput = z.output<typeof timeIntervalsFormSchema>;
 
 export default function TimeInterval() {
   const {
@@ -77,7 +84,7 @@ export default function TimeInterval() {
         { weekDay: 6, enabled: false, startTime: "08:00", endTime: "18:00" },
       ],
     },
-  })
+  });
 
   const weekDays = getWeekDays();
 
@@ -86,13 +93,14 @@ export default function TimeInterval() {
     name: "intervals",
   });
 
-  const intervals = watch('intervals')
+  const intervals = watch("intervals");
 
   async function handleDetTimeIntervals(data: any) {
-    const formData = data as TimeIntervalsFormOutput
-    console.log(data)
+    const { intervals } = data as TimeIntervalsFormOutput;
+    api.post("/users/time-intervals", {
+      intervals,
+    });
   }
-
 
   return (
     <Container>
@@ -112,20 +120,19 @@ export default function TimeInterval() {
             return (
               <IntervalItem key={field.id}>
                 <IntervalDay>
-                <Controller
-                  name={`intervals.${index}.enabled`}
-                  control={control}
-                  render={({field}) => {
-                    return (
-                      <Checkbox 
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked === true)
-                      }}
-
-                      checked={field.value}
-                      />
-                    )
-                  }}
+                  <Controller
+                    name={`intervals.${index}.enabled`}
+                    control={control}
+                    render={({ field }) => {
+                      return (
+                        <Checkbox
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked === true);
+                          }}
+                          checked={field.value}
+                        />
+                      );
+                    }}
                   />
                   <Text>{weekDays[field.weekDay]}</Text>
                 </IntervalDay>
@@ -151,13 +158,9 @@ export default function TimeInterval() {
           })}
         </IntervalContainer>
 
-        {
-          errors.intervals && (
-            <FormError size='sm'>
-              {errors.intervals?.root?.message}
-            </FormError>
-          )
-        }
+        {errors.intervals && (
+          <FormError size="sm">{errors.intervals?.root?.message}</FormError>
+        )}
 
         <Button disabled={isSubmitting}>
           Próximo passo
