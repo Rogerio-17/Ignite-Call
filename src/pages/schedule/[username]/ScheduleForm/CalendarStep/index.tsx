@@ -1,16 +1,23 @@
+import { useState } from "react";
 import { Calendar } from "../../../../../components/Calendar";
 import { Container, TimePicker, TimePickerHeader, TimePickerItem, TimePickerList } from "./style";
+import dayjs from "dayjs";
 
 export function CalendarStep() {
-    const isDateSelected = false
+    const [selectDate, setSelectDate] = useState<Date | null>()
+
+    const isDateSelected = !!selectDate
+
+    const weekDay = selectDate ? dayjs(selectDate).format('dddd') : null
+    const describedDate = selectDate ? dayjs(selectDate).format('DD [ de ] MMMM') : null
     return (
         <Container isTimePickerOpen={isDateSelected}>
-            <Calendar />
+            <Calendar selectDate={selectDate} onDateSelected={setSelectDate}/>
 
             {isDateSelected && (
                 <TimePicker>
                     <TimePickerHeader>
-                        Terça-feira <span>20 de setembro</span>
+                        {weekDay} <span>{describedDate}</span>
                     </TimePickerHeader>
 
                     <TimePickerList>
